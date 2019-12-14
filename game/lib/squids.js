@@ -192,6 +192,22 @@
 		ctx.restore();
 	}
 
+
+	sq_drawCircle = function( dx, dy, r, clr, fill) {
+		if(fill) {
+			ctx.fillStyle = clr;
+		} else {
+			ctx.strokeStyle = clr;
+		}
+		ctx.beginPath();
+		ctx.arc( dx, dy, r, 0, Math.PI * 2, false );
+		if(fill) { 
+			ctx.fill();
+		} else {
+			ctx.stroke();
+		}
+	}
+
 	sq_getSound = function( file ) {
 		return snds[ file ];
 	}
@@ -244,21 +260,27 @@
 			}
 		};
 
+		canvas.oncontextmenu = window.oncontextmenu = () => { return false; };
+
 		canvas.onmousedown = function( evt ) {
+			evt.preventDefault();
 			let mx = evt.clientX - canvas.offsetLeft;
 			let my = evt.clientY - canvas.offsetTop;
+			let btn = evt.button;
 			let f = window[ "app_mousedown" ];
 			if( typeof f === "function" ) {
-				f( mx, my );
+				f( mx, my, btn );
 			}
 		};
 
 		canvas.onmouseup = function( evt ) {
+			evt.preventDefault();
 			let mx = evt.clientX - canvas.offsetLeft;
 			let my = evt.clientY - canvas.offsetTop;
+			let btn = evt.button;
 			let f = window[ "app_mouseup" ];
 			if( typeof f === "function" ) {
-				f( mx, my );
+				f( mx, my, btn );
 			}
 		};
 

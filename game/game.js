@@ -84,31 +84,60 @@ app_keydown = function(key) {
 	game.keys_down[key] = 1;
 }
 
-var plant_zombie = function() {
+app_mousemove = function(x, y) {
+	game.mx = x;
+	game.my = y;
+}
+
+app_mousedown = function(x,y, btn) {
+	switch(btn) {
+		case 0: // Left mouse button
+			// All left clicks anywhere disable active ui elements
+			Object.keys(game.ui).forEach(ui_key => {
+				let sq = game.ui[ui_key];
+				sq.active = false;
+			});
+			if(hitRect(game.ui.zombie_seeds, x, y)) {
+				game.ui.zombie_seeds.active = true;
+			}
+			break;
+		case 2: // Right mouse button
+			if(game.ui.zombie_seeds.active) {
+				plant_zombie(x,y);
+			}
+			break;
+	}
+}
+
+var plant_zombie = function(x, y) {
 	if(game.player.planting) return;
-	console.log(game.player.inventory.seeds.zombie);
+	let can_plant = true;
+	if(hitArc({alive: true, radius: 10, x: x, y: y}, game.player)) {
+		console.log("CLOSE ENOUGH TO PLANT");
+	} else {
+		can_plant = false;
+		console.log("NOT CLOSE ENOUGH TO PLANT");
+	}
 	if(game.player.inventory.seeds.zombie > 0) {
 		game.player.planting = true;
-		let can_plant = true;
 		game.plants.zombie.forEach(z => {
-			console.log("HITTING: ", hitRect(z, game.player.x, game.player.y));
-			if(hitRect(z, game.player.x + 20, game.player.y + 20)) {
+			console.log("HITTING: ", hitRect(z, x + 20, y + 20));
+			if(hitRect(z, x + 20, y + 20)) {
 				can_plant = false;
 				log("cannot plant here");
 			}
 		});
 		if(can_plant) {
-			let sq = sq_create(sq_getImage("zombie_ripe.png"), game.player.x, game.player.y);
-			sq.sx = 0.25;
-			sq.sy = 0.25;
+			let sq = sq_create(sq_getImage("zombie_ripe.png"), x, y);
+			sq.sx = 0.1;
+			sq.sy = 0.1;
 			sq.alive = true;
 			game.plants.zombie.push(sq);
 			game.player.inventory.seeds.zombie--;
-			console.log("ZOMBIE PLANTED: " + game.player.x + ", " + game.player.y);
 		}
 		setTimeout(() => {
 				game.player.planting = false;
-		}, 1000);
+		}, 250);
 	}
 }
 
@@ -116,7 +145,7 @@ var game = {
 	t: 0,
 	SW: 800,
 	SH: 600,
-	images: ["rt.png", "zombie_ripe.png"],
+	images: ["rt.png", "zombie_ripe.png", "brain.png"],
 	sounds: ["rt.wav", "dumb.wav"],
 	fonts: {
 		system: null
@@ -124,6 +153,9 @@ var game = {
 	player: null,
 	plants: {
 		zombie: []
+	},
+	ui: {
+		zombie_seeds: {}
 	},
 	music: null,
 	keys_down: {},
@@ -157,6 +189,11 @@ var game = {
 				}
 			}
 		});
+		// Tick the game ui
+		Object.keys(game.ui).forEach(ui_key => {
+			let sq = game.ui[ui_key];
+			sq.tick();
+		});
 		game.plants.zombie.forEach( z => {
 			z.tick();
 		});
@@ -167,6 +204,7 @@ var game = {
 		let ty = 20;
 		sq_drawText("TICK: " + game.t, 20, ty, game.fonts.system, 0.5, "left");
 		ty += 26;
+		// Draw the keys being pressed
 		Object.keys(game.keys_down).forEach(key => {
 			let val = game.keys_down[key];
 			if(val === 1) {
@@ -174,12 +212,23 @@ var game = {
 				ty += 26;
 			}
 		});
+		// Draw the game ui
+		Object.keys(game.ui).forEach(ui_key => {
+			let sq = game.ui[ui_key];
+			if(sq.active) {
+				sq_fillRect(sq.x - sq.img.w/2 * sq.sx - 2, sq.y - sq.img.h/2 * sq.sy - 2, sq.img.w + 4, sq.img.h + 4, "#FF0");
+			}
+			sq.draw();
+		});
+
 		sq_drawText("ZOMBIE SEEDS: " + game.player.inventory.seeds.zombie, game.SW - 20, 20, game.fonts.system, 0.5, "right");
 	
 		game.plants.zombie.forEach( z => {
 			z.draw();
 		});
 		game.player.draw();
+		sq_drawCircle(game.player.x, game.player.y, game.player.radius, "rgba(255,255,255, 0.1)", true);
+		sq_drawCircle(game.mx, game.my, 10, "#ff0");
 	},
 	loop: function() {
 		game.t++;
@@ -207,6 +256,8 @@ var game = {
 
 			game.player.planting = false;
 
+			game.player.radius = 100;
+
 			game.player.inventory = {
 				seeds: {
 					zombie: 10
@@ -225,6 +276,13 @@ var game = {
 
 				sq_tick(this);
 			}
+
+			// -------------
+			// DEFINE GAME UI HERE
+			// -------------
+			let zombie_seed_image = sq_getImage("brain.png");
+			game.ui.zombie_seeds = sq_create(zombie_seed_image, 20 + zombie_seed_image.w / 2, game.SH - 20 - zombie_seed_image.h/2);
+			game.ui.zombie_seeds.alive = true;
 
 			music = sq_getSound("dumb.wav");
 			music._loop = true;
