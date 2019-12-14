@@ -50,12 +50,68 @@ function screenWrap(sq) {
 
 }
 
+// return true if two squids, have overlapping radii
+function hitArc(sq1, sq2) {
+	if(sq1.alive && sq2.alive) {
+		let rHit = (sq1.radius * sq1.radius) + (sq2.radius * sq2.radius);
+		let xx = abs(sq2.x - sq1.x);
+		let yy = abs(sq2.y - sq1.y);
+		let rDist = (xx * xx) + (yy * yy);
+		return rDist < rHit;
+	}
+	return false;
+}
+
+// return true if hx, hy is within the rect of a squids image.
+function hitRect(sq, hx, hy) {
+	if(!sq.alive) { return false; }
+	let img = sq.img;
+	if(img == null) { return false; }
+	let x = sq.x, y = sq.y;
+	let w2 = (img.w * sq.sx) * 0.5;
+	let h2 = (img.h * sq.sy) * 0.5;
+	if(hx < x - w2) { return false; }
+	if(hx > x + w2) { return false; }
+	if(hy < y - h2) { return false; }
+	if(hy > y + h2) { return false; }
+	return true;
+}
+
 app_keyup = function(key) {
 	game.keys_down[key] = 0;
 }
 app_keydown = function(key) {
 	game.keys_down[key] = 1;
 }
+
+var plant_zombie = function() {
+	if(game.player.planting) return;
+	console.log(game.player.inventory.seeds.zombie);
+	if(game.player.inventory.seeds.zombie > 0) {
+		game.player.planting = true;
+		let can_plant = true;
+		game.plants.zombie.forEach(z => {
+			console.log("HITTING: ", hitRect(z, game.player.x, game.player.y));
+			if(hitRect(z, game.player.x + 20, game.player.y + 20)) {
+				can_plant = false;
+				log("cannot plant here");
+			}
+		});
+		if(can_plant) {
+			let sq = sq_create(sq_getImage("zombie_ripe.png"), game.player.x, game.player.y);
+			sq.sx = 0.25;
+			sq.sy = 0.25;
+			sq.alive = true;
+			game.plants.zombie.push(sq);
+			game.player.inventory.seeds.zombie--;
+			console.log("ZOMBIE PLANTED: " + game.player.x + ", " + game.player.y);
+		}
+		setTimeout(() => {
+				game.player.planting = false;
+		}, 1000);
+	}
+}
+
 var game = {
 	t: 0,
 	SW: 800,
@@ -66,6 +122,9 @@ var game = {
 		system: null
 	},
 	player: null,
+	plants: {
+		zombie: []
+	},
 	music: null,
 	keys_down: {},
 	tick: function() {
@@ -91,9 +150,15 @@ var game = {
 					case 'd':
 						game.player.vx = game.player.speed;
 						break;
+					case 'j':
+							plant_zombie();
+							break;
 					default: break;
 				}
 			}
+		});
+		game.plants.zombie.forEach( z => {
+			z.tick();
 		});
 		game.player.tick();
 	},
@@ -109,7 +174,11 @@ var game = {
 				ty += 26;
 			}
 		});
-
+		sq_drawText("ZOMBIE SEEDS: " + game.player.inventory.seeds.zombie, game.SW - 20, 20, game.fonts.system, 0.5, "right");
+	
+		game.plants.zombie.forEach( z => {
+			z.draw();
+		});
 		game.player.draw();
 	},
 	loop: function() {
@@ -136,6 +205,14 @@ var game = {
 
 			game.player.speed = 3;
 
+			game.player.planting = false;
+
+			game.player.inventory = {
+				seeds: {
+					zombie: 10
+				}
+			};
+
 			game.player.tick = function() {
 				let sq = this;
 				
@@ -148,8 +225,6 @@ var game = {
 
 				sq_tick(this);
 			}
-
-			console.log(game.player);
 
 			music = sq_getSound("dumb.wav");
 			music._loop = true;
