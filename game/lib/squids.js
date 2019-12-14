@@ -180,6 +180,11 @@
 		ctx.restore();
 	}
 
+
+	sq_clearRect = function( x, y, w, h) {
+		ctx.clearRect( x, y, w, h );
+	}
+
 	sq_fillRect = function( x, y, w, h, clr ) {
 		ctx.restore();
 		ctx.fillStyle = clr;

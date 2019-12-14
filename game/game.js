@@ -98,7 +98,7 @@ var game = {
 		game.player.tick();
 	},
 	draw: function() {
-		sq_fillRect(0,0,game.SW, game.SH, "#000");
+		sq_clearRect(0,0,game.SW,game.SH);
 		let ty = 20;
 		sq_drawText("TICK: " + game.t, 20, ty, game.fonts.system, 0.5, "left");
 		ty += 26;

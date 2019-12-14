@@ -3,7 +3,10 @@ body, html {
 	width: 100vw;
 	height: 100vh;
 	overflow: hidden;
-	background: #000;
+	background: url('bg.png');
+	background-size: 512px 512px;
+	background-position: center;
+	background-repeat: repeat;
 }
 
 canvas {
