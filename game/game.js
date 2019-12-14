@@ -159,7 +159,7 @@ var game = {
 		"music/rt.wav", 
 		"music/dumb.wav", 
 		"music/shovel.wav", 
-		"music/step_dirt.ogg", 
+		"music/steps.wav", 
 		"music/switch.wav", 
 		"music/under_the_moonrise.mp3"
 	],
@@ -188,15 +188,19 @@ var game = {
 						break;
 				 	case 'w':
 						game.player.vy = -game.player.speed;
+						game.player.moving = true;
 						break;
 					case 's':
 						game.player.vy = game.player.speed; 
+						game.player.moving = true;
 						break;
 				 	case 'a':
 						game.player.vx = -game.player.speed;
+						game.player.moving = true;
 						break;
 					case 'd':
 						game.player.vx = game.player.speed;
+						game.player.moving = true;
 						break;
 					case 'j':
 							plant_zombie();
@@ -280,6 +284,7 @@ var game = {
 				}
 			};
 
+			game.player.step_sound = sq_getSound("music/steps.wav");
 			game.player.tick = function() {
 				let sq = this;
 				
@@ -288,8 +293,17 @@ var game = {
 				sq.vx = sq.vx * 0.1;		// reduce my velocity by 10% (?)
 				sq.vy = sq.vy * 0.1;
 
-				screenWrap(this);
+				if(Math.abs(sq.vx) < .1) sq.vx = 0;
+				if(Math.abs(sq.vy) < .1) sq.vy = 0;
 
+				screenWrap(this);
+				console.log(sq.moving, sq.vx, sq.vy);
+				if(sq.vx == 0 && sq.vy == 0) {
+					sq.moving = false;
+				}
+				if(game.t % 25 === 0 && sq.moving) {
+					sq.step_sound.play();	
+				}
 				sq_tick(this);
 			}
 
