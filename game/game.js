@@ -8,7 +8,7 @@ var game = {
 	t: 0,
 	SW: 800,
 	SH: 600,
-	images: ["rt.png", "zombie-ripe.png"],
+	images: ["rt.png", "zombie_ripe.png"],
 	sounds: ["rt.wav", "dumb.wav"],
 	fonts: {
 		system: null
@@ -28,22 +28,21 @@ var game = {
 						music.volume(0);
 						break;
 				 	case 'w':
-						game.player.tgty += 1;
+						game.player.tgty = game.player.y - game.player.speed;
 						break;
 					case 's':
-						game.player.tgty -= 1;
+						game.player.tgty = game.player.y + game.player.speed;
 						break;
 				 	case 'a':
-						game.player.tgtx -= 1;
+						game.player.tgtx = game.player.x - game.player.speed;
 						break;
 					case 'd':
-						game.player.tgtx += 1;
+						game.player.tgtx = game.player.x + game.player.speed;
 						break;
 					default: break;
 				}
 			}
 		});
-
 		game.player.tick();
 	},
 	draw: function() {
@@ -77,17 +76,27 @@ var game = {
 
 			game.SW = window.innerWidth;
 			game.SH = window.innerHeight;
+			//sq_debug(true);
 			sq_useCanvas("mycanvas", game.SW, game.SH);
 
-			player = sq_create(sq_getImage("rt.png"), 100, 100);
-			player.alive = true;
 
-			player.tick = function() {
+			console.log(game.SW);
+			game.player = sq_create(sq_getImage("rt.png"), game.SW * 0.5, game.SH * 0.5);
+			game.player.alive = true;
+
+			game.player.tgtx = game.player.x;
+			game.player.tgty = game.player.y;
+
+			game.player.speed = 30;
+
+			game.player.tick = function() {
 				let sq = this;
-				this.vx = (this.tgtx - this.x) * 0.2;
-				this.vy = (this.tgty - this.y) * 0.2;
+				this.vx = (this.tgtx - this.x) * 0.1;
+				this.vy = (this.tgty - this.y) * 0.1;
 				sq_tick(this);
 			}
+
+			console.log(game.player);
 
 			music = sq_getSound("dumb.wav");
 			music._loop = true;
