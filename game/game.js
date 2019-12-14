@@ -9,7 +9,7 @@ var game = {
 	SW: 800,
 	SH: 600,
 	images: ["rt.png"],
-	sounds: ["rt.wav"],
+	sounds: ["rt.wav", "dumb.wav"],
 	fonts: {
 		system: null
 	},
@@ -66,7 +66,7 @@ var game = {
 			player = sq_create(sq_getImage("rt.png"), game.SW * 0.5, game.SH * 0.5);
 			player.alive = true;
 
-			music = sq_getSound("rt.wav");
+			music = sq_getSound("dumb.wav");
 			music._loop = true;
 			music.play();
 
