@@ -86,6 +86,7 @@
 		snd_files.forEach( file => {
 			let e = new Howl({
 				src: [file], 
+				volume: 1,
 				onload: () => {
 					//console.log(`${file} loaded`);
 					sounds_still_loading -= 1;

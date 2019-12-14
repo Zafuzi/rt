@@ -97,8 +97,10 @@ app_mousedown = function(x,y, btn) {
 				let sq = game.ui[ui_key];
 				sq.active = false;
 			});
+			let click = sq_getSound("music/switch.wav");
 			if(hitRect(game.ui.zombie_seeds, x, y)) {
 				game.ui.zombie_seeds.active = true;
+				click.play();
 			}
 			break;
 		case 2: // Right mouse button
@@ -128,12 +130,12 @@ var plant_zombie = function(x, y) {
 			}
 		});
 		if(can_plant) {
-			let sq = sq_create(sq_getImage("zombie_ripe.png"), x, y);
-			sq.sx = 0.1;
-			sq.sy = 0.1;
+			let sq = sq_create(sq_getImage("img/zombie_ripe_64.png"), x, y);
 			sq.alive = true;
 			game.plants.zombie.push(sq);
 			game.player.inventory.seeds.zombie--;
+			let shovel = sq_getSound("music/shovel.wav");
+			shovel.play();
 		}
 		setTimeout(() => {
 				game.player.planting = false;
@@ -145,8 +147,22 @@ var game = {
 	t: 0,
 	SW: 800,
 	SH: 600,
-	images: ["rt.png", "zombie_ripe.png", "brain.png"],
-	sounds: ["rt.wav", "dumb.wav"],
+	images: [
+		"img/brain.png",
+		
+		"img/rt.png", 
+
+		"img/zombie_ripe_64.png", 
+		"img/zombie_shoot_64.png" 
+	],
+	sounds: [
+		"music/rt.wav", 
+		"music/dumb.wav", 
+		"music/shovel.wav", 
+		"music/step_dirt.ogg", 
+		"music/switch.wav", 
+		"music/under_the_moonrise.mp3"
+	],
 	fonts: {
 		system: null
 	},
@@ -249,7 +265,7 @@ var game = {
 			//sq_debug(true);
 			sq_useCanvas("mycanvas", game.SW, game.SH);
 
-			game.player = sq_create(sq_getImage("rt.png"), game.SW * 0.5, game.SH * 0.5);
+			game.player = sq_create(sq_getImage("img/rt.png"), game.SW * 0.5, game.SH * 0.5);
 			game.player.alive = true;
 
 			game.player.speed = 3;
@@ -280,13 +296,13 @@ var game = {
 			// -------------
 			// DEFINE GAME UI HERE
 			// -------------
-			let zombie_seed_image = sq_getImage("brain.png");
+			let zombie_seed_image = sq_getImage("img/brain.png");
 			game.ui.zombie_seeds = sq_create(zombie_seed_image, 20 + zombie_seed_image.w / 2, game.SH - 20 - zombie_seed_image.h/2);
 			game.ui.zombie_seeds.alive = true;
 
-			music = sq_getSound("dumb.wav");
+			music = sq_getSound("music/under_the_moonrise.mp3");
 			music._loop = true;
-			music.play();
+			//music.play();
 
 			game.fonts.system = sq_getFont( "Arial", 26, "#abc" );
 
