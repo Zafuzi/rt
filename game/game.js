@@ -104,39 +104,9 @@ var handle_left_click = function(x,y) {
 		if(!sq.toggle)
 			sq.active = false;
 	});
-	if(game.ui.sickle.active) {
-		Object.keys(game.plants).forEach(p => {
-			game.plants[p].forEach(sq => {
-				if(!sq.ripe) return;
-				let can_harvest = player_close_enough(x,y);
-				if(!can_harvest) return;
-				if(hitArc({alive: true, radius: 60, x: x, y: y}, sq)) {
-					let cut = sq_getSound("music/cut.wav");
-					cut.play();
-					sq.alive = false;
-					game.player.inventory.seeds[sq.drop] += 1;
-					toggle_action_buttons();
-					game.ui.sickle.active = true;
-				}
-			});
-		});
-	}
-	if(game.ui.watering_can.active) {
-		Object.keys(game.plants).forEach(p => {
-			game.plants[p].forEach(sq => {
-				if(!sq.water) return;
-				let can_water = player_close_enough(x,y);
-				if(!can_water) return;
-				if(sq.has_been_watered) return;
-				if(hitArc({alive: true, radius: 60, x: x, y: y}, sq)) {
-					let water = sq_getSound("music/gulp.wav");
-					water.play();
-					sq.has_been_watered = true;
-				}
-			});
-		});
-		toggle_action_buttons();
-		game.ui.watering_can.active = true;
+	if(game.player.carrying) {
+		let sq = game.player.carrying;
+		sq.action();
 	}
 	let click = sq_getSound("music/switch.wav");
 	if(hitRect(game.ui.zombie_seeds, x, y)) {
@@ -145,16 +115,6 @@ var handle_left_click = function(x,y) {
 	}
 	if(hitRect(game.ui.bone_seeds, x, y)) {
 		game.ui.bone_seeds.active = !game.ui.bone_seeds.active;
-		click.play();
-	}
-	if(hitRect(game.ui.sickle, x, y)) {
-		toggle_action_buttons();
-		game.ui.sickle.active = !game.ui.sickle.active;
-		click.play();
-	}
-	if(hitRect(game.ui.watering_can, x, y)) {
-		toggle_action_buttons();
-		game.ui.watering_can.active = !game.ui.watering_can.active;
 		click.play();
 	}
 	let dont_play_poof = false;
@@ -326,9 +286,16 @@ var game = {
 		"img/cactus.png",
 		"img/sickle.png",
 		"img/harvest.png", 
-		
+
 		"img/rock.png",
+
+		"img/mustache.png",
 		"img/mch_idle.png", 
+		"img/mch_left_001.png", 
+		"img/mch_left_002.png", 
+		"img/mch_left_003.png", 
+		"img/mch_right_001.png", 
+		"img/mch_right_002.png", 
 		"img/tree.png",
 
 		"img/watering_can.png", 
@@ -370,13 +337,15 @@ var game = {
 	music: null,
 	keys_down: {},
 	mouse_btns_down: {},
+	pickups: {},
 	clicking: false,
+	enemies: [],
 	tick: function() {
 		Object.keys(game.keys_down).forEach(key => {
 			let val = game.keys_down[key];
 			if(val === 1) {
 				switch(key) {
-				 	case 'n':
+				 	case 'n':idle
 						music.volume(0.8);
 						break;
 					case 'm':
@@ -385,28 +354,29 @@ var game = {
 				 	case 'w':
 						game.player.vy = -game.player.speed;
 						game.player.moving = true;
+						game.player.anim = game.player.animations.player_backward;
 						break;
 					case 's':
 						game.player.vy = game.player.speed; 
 						game.player.moving = true;
+						game.player.anim = game.player.animations.player_forward;
 						break;
 				 	case 'a':
 						game.player.vx = -game.player.speed;
 						game.player.moving = true;
+						game.player.anim = game.player.animations.player_left;
 						break;
 					case 'd':
 						game.player.vx = game.player.speed;
 						game.player.moving = true;
+						game.player.anim = game.player.animations.player_right;
 						break;
-					case '1':
-						let s = game.ui.sickle;
-						if(s.active) return;
-						handle_left_click(s.x, s.y);
-						break;
-					case '2':
-						let w = game.ui.watering_can;
-						if(w.active) return;
-						handle_left_click(w.x, w.y);
+					case 'e':
+						if(game.player.carrying) {
+							game.player.carrying.carried = false;
+							game.player.carrying.x += 32;
+							game.player.carrying = null;
+						}
 						break;
 					case 'Escape':
 						toggle_action_buttons();
@@ -453,9 +423,15 @@ var game = {
 				sq.tick();	
 			});
 		});
+
+		game.enemies.forEach( wd => { wd.tick(); });
 		game.water_drops.forEach( wd => { if(wd.plant.alive) {wd.tick();} });
 		game.harvest_icons.forEach( wd => { if(wd.plant.alive) {wd.tick();} });
 		game.player.tick();
+		Object.keys(game.pickups).forEach(a => {
+			let sq = game.pickups[a];
+				sq.tick();	
+		});
 	},
 	draw: function() {
 		sq_clearRect(0,0,game.SW,game.SH);
@@ -467,8 +443,13 @@ var game = {
 				sq.draw();	
 			});
 		});
+		game.enemies.forEach( wd => { wd.draw(); });
 		game.water_drops.forEach( wd => { if(wd.plant.alive) {wd.draw();} });
 		game.harvest_icons.forEach( wd => { if(wd.plant.alive) {wd.draw();} });
+		Object.keys(game.pickups).forEach(a => {
+			let sq = game.pickups[a];
+				sq.draw();	
+		});
 
 		sq_drawDoughnut(game.player.x, game.player.y, game.player.radius, game.SW + game.SH, "rgba(0,0,0,0.84)");
 
@@ -525,7 +506,15 @@ var game = {
 			//sq_debug(true);
 			sq_useCanvas("mycanvas", game.SW, game.SH);
 
+
+
 			game.player = sq_create(sq_getImage("img/mch_idle.png"), game.SW * 0.5, game.SH * 0.5);
+			game.player.animations = {};
+			game.player.animations.player_left = [sq_getImage("img/mch_left_001.png"), sq_getImage("img/mch_left_002.png"), sq_getImage("img/mch_left_003.png")];
+			game.player.animations.player_right = [sq_getImage("img/mch_right_001.png"), sq_getImage("img/mch_right_002.png"), sq_getImage("img/mch_right_003.png")];
+			game.player.animations.player_forward = [sq_getImage("img/mch_idle.png"), sq_getImage("img/mch_idle.png")];
+			game.player.animations.player_backward = [sq_getImage("img/mch_idle.png"), sq_getImage("img/mch_idle.png")];
+			game.player.animations.player_idle = [sq_getImage("img/mch_idle.png"), sq_getImage("img/mch_idle.png")];
 			game.player.alive = true;
 
 			game.player.speed = 3;
@@ -542,6 +531,8 @@ var game = {
 			};
 
 			game.player.step_sound = sq_getSound("music/step.wav");
+			game.player.step = 0;
+			game.player.anim = game.player.animations.player_idle;
 			game.player.tick = function() {
 				let sq = this;
 				
@@ -557,10 +548,42 @@ var game = {
 				if(sq.vx == 0 && sq.vy == 0) {
 					sq.moving = false;
 				}
-				if(game.t % 18 === 0 && sq.moving) {
-					sq.step_sound.play();	
+				if(!sq.moving) {
+					sq.step = 0;
+					sq.anim = sq.animations.player_idle;
+					sq.img = sq.anim[sq.step];
+				}
+				if(game.t % 5 === 0) {
+					if(sq.moving) {
+						if(!sq.anim[sq.step]) {
+							sq.img = sq.img;
+						} else {
+							sq.img = sq.anim[sq.step];
+						}
+					}
+					if(sq.step >= sq.anim.length - 1) sq.step = 0;
+					sq.step++;
+				}
+				if(game.t % 18 === 0) {
+					if(sq.moving) {
+						sq.step_sound.play();	
+					}
 				}
 				sq_tick(this);
+			}
+
+			let mustache_img = sq_getImage("img/mustache.png");
+			for(let i = 0; i < 100; i++) {
+				let sq = sq_create(mustache_img, (Math.random() * i * game.SW) % game.SW, (Math.random() * i * game.SH) % game.SH);
+				sq.alive = true;
+				sq.tick = function() {
+					let sq = this;
+					newton(sq);
+					sq.vx = (game.player.x - sq.x) * 0.001;
+					sq.vy = (game.player.y - sq.y) * 0.001;
+					sq_tick(sq);
+				}
+				game.enemies.push(sq);
 			}
 
 			// -------------
@@ -585,26 +608,83 @@ var game = {
 			}
 
 			let sickle_image = sq_getImage("img/sickle.png");
-			game.ui.sickle = sq_create(sickle_image, 20 + sickle_image.w / 2, game.SH - 20 - zombie_seed_image.h - sickle_image.h/2 - 20);
-			game.ui.sickle.alive = true;
-			game.ui.sickle.toggle = true;
-			game.ui.sickle.clr = "#5F97EA";
-			game.ui.sickle.tick = function() {
+			game.pickups.sickle = sq_create(sickle_image, game.SW * 0.5 + 64, game.SH * 0.5 + 64);
+			game.pickups.sickle.alive = true;
+			game.pickups.sickle.action = function() {
+				Object.keys(game.plants).forEach(p => {
+					game.plants[p].forEach(sq => {
+						if(!sq.ripe) return;
+						let can_harvest = player_close_enough(game.mx,game.my);
+						if(!can_harvest) return;
+						if(hitArc({alive: true, radius: 60, x: game.mx, y: game.my}, sq)) {
+							let cut = sq_getSound("music/cut.wav");
+							cut.play();
+							sq.alive = false;
+							game.player.inventory.seeds[sq.drop] += 1;
+						}
+					});
+				});
+			}
+			game.pickups.sickle.tick = function() {
 				let sq = this;
-				sq.y = game.SH - 20 - zombie_seed_image.h - sickle_image.h/2 - 20;
-				sq_tick(this);
+				if(!game.player.carrying) {
+					if(!sq.carried) {
+						if(hitRect(sq, game.player.x, game.player.y)) {
+							sq.x = game.player.x;
+							sq.y = game.player.y - game.player.img.h;
+							sq.carried = true;
+							game.player.carrying = sq;
+						}
+					} else {
+						sq.x = game.player.x;
+						sq.y = game.player.y - game.player.img.h;
+					}
+				} else {
+					if(game.player.carrying === sq) {
+						sq.x = game.player.x;
+						sq.y = game.player.y - game.player.img.h;
+					}
+				}
 			}
 
 			let watering_can_image = sq_getImage("img/watering_can.png");
-			game.ui.watering_can = sq_create(watering_can_image, sickle_image.w + 40 + watering_can_image.w / 2, game.SH - 20 - zombie_seed_image.h - watering_can_image.h/2 - 20);
-			game.ui.watering_can.alive = true;
-			game.ui.watering_can.toggle = true;
-			game.ui.watering_can.clr = "#5F97EA";
-			game.ui.watering_can.toggle = true;
-			game.ui.watering_can.tick = function() {
+			game.pickups.watering_can = sq_create(watering_can_image, game.SW * 0.5 - 64, game.SH * 0.5 - 64);
+			game.pickups.watering_can.alive = true;
+			game.pickups.watering_can.action = function() {
+				Object.keys(game.plants).forEach(p => {
+					game.plants[p].forEach(sq => {
+						if(!sq.water) return;
+						let can_water = player_close_enough(game.mx,game.my);
+						if(!can_water) return;
+						if(sq.has_been_watered) return;
+						if(hitArc({alive: true, radius: 60, x: game.mx, y: game.my}, sq)) {
+							let water = sq_getSound("music/gulp.wav");
+							water.play();
+							sq.has_been_watered = true;
+						}
+					});
+				});
+			}
+			game.pickups.watering_can.tick = function() {
 				let sq = this;
-				sq.y = game.SH - 20 - zombie_seed_image.h - watering_can_image.h/2 - 20;
-				sq_tick(this);
+				if(!game.player.carrying) {
+					if(!sq.carried) {
+						if(hitRect(sq, game.player.x, game.player.y)) {
+							sq.x = game.player.x;
+							sq.y = game.player.y - game.player.img.h;
+							sq.carried = true;
+							game.player.carrying = sq;
+						}
+					} else {
+						sq.x = game.player.x;
+						sq.y = game.player.y - game.player.img.h;
+					}
+				} else {
+					if(game.player.carrying === sq) {
+						sq.x = game.player.x;
+						sq.y = game.player.y - game.player.img.h;
+					}
+				}
 			}
 
 			music = sq_getSound("music/under_the_moonrise.mp3");
