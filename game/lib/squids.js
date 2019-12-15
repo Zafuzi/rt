@@ -181,18 +181,25 @@
 		ctx.restore();
 	}
 
-
 	sq_clearRect = function( x, y, w, h) {
 		ctx.clearRect( x, y, w, h );
 	}
 
 	sq_fillRect = function( x, y, w, h, clr ) {
-		ctx.restore();
+		ctx.beginPath()
 		ctx.fillStyle = clr;
 		ctx.fillRect( x, y, w, h );
-		ctx.restore();
+		ctx.closePath();
 	}
 
+	sq_drawDoughnut = function(dx, dy, ir, or, clr) {
+		ctx.fillStyle = clr;
+		ctx.beginPath()
+		ctx.arc(dx,dy,or,0,Math.PI*2, false); // outer (filled)
+		ctx.arc(dx,dy,ir,0,Math.PI*2, true); // outer (unfills it)
+		ctx.fill();
+		ctx.closePath();
+	}
 
 	sq_drawCircle = function( dx, dy, r, clr, fill) {
 		if(fill) {
@@ -201,12 +208,13 @@
 			ctx.strokeStyle = clr;
 		}
 		ctx.beginPath();
-		ctx.arc( dx, dy, r, 0, Math.PI * 2, false );
+		ctx.arc( dx, dy, r, 0, Math.PI * 2, fill );
 		if(fill) { 
 			ctx.fill();
 		} else {
 			ctx.stroke();
 		}
+		ctx.closePath();
 	}
 
 	sq_getSound = function( file ) {

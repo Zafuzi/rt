@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "howler": "^2.1.2",
+    "jquery": "^3.4.1",
     "sleepless": "^2.7.2",
     "squids": "^1.2.16"
   }
