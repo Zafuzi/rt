@@ -528,6 +528,7 @@ var game = {
 		sq_drawText(game.player.inventory.seeds.bones, game.ui.bone_seeds.x, game.SH - 20 - game.ui.zombie_seeds.img.h/2, game.fonts.seed, 1, "center");
 	
 
+		sq_drawText(game.player.health, game.player.x, game.player.y - 64, game.fonts.seed, 1, "center");
 		sq_drawCircle(game.mx, game.my, game.action_radius, "#ff0");
 		game.player.draw();
 	},
@@ -561,6 +562,8 @@ var game = {
 			game.player.animations.player_idle = [sq_getImage("img/mch_idle_001.png"), sq_getImage("img/mch_idle_002.png")];
 			game.player.animations.player_atk = [sq_getImage("img/mch_atk_001.png"), sq_getImage("img/mch_atk_002.png")];
 			game.player.alive = true;
+
+			game.player.health = 100;
 
 			game.player.speed = 3;
 
@@ -645,6 +648,12 @@ var game = {
 							sq.step = 0;
 						}
 					}
+					if(hitRect(sq, game.player.x, game.player.y)) {
+						if(game.t % 30 === 0) {
+							game.player.health -= 10;
+						}
+					}
+
 					sq_tick(sq);
 				}
 				game.enemies.push(sq);
