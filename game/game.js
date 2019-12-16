@@ -165,8 +165,8 @@ app_mousedown = function(x,y, btn) {
 }
 
 // Is click within player radius
-var player_close_enough = function(x, y, sq) {
-	if(hitArc({alive: true, radius: game.action_radius + 140, x: x, y: y}, sq)) {
+var player_close_enough = function(x, y) {
+	if(hitArc({alive: true, radius: 100, x: x, y: y}, game.player)) {
 		return true;
 	} else {
 		return false;
@@ -175,7 +175,7 @@ var player_close_enough = function(x, y, sq) {
 
 var plant = function(name, x, y) {
 	if(game.player.planting) return;
-	let can_plant = player_close_enough(x,y, game.player);
+	let can_plant = player_close_enough(x,y);
 	if(!can_plant) return;
 	let amt = game.player.inventory.seeds[name];
 	if(amt == 0) return;
@@ -286,19 +286,18 @@ var game = {
 	images: [
 		"img/bones.png",
 		"img/brain.png",
+		"img/cactus.png",
 		"img/sickle.png",
 		"img/sword.png",
 		"img/harvest.png", 
-		
+
+		"img/rock.png",
+
+		"img/mustache.png",
 		"img/mch_idle_001.png", 
 		"img/mch_idle_002.png", 
-		"img/mch_idle_sword.png", 
-		"img/mch_idle_watering_can.png", 
-
-		"img/mch_sickle_001.png", 
-		"img/mch_sickle_002.png", 
-		"img/mch_sword_001.png", 
-		"img/mch_sword_002.png", 
+		"img/mch_atk_001.png", 
+		"img/mch_atk_002.png", 
 		"img/mch_back_001.png", 
 		"img/mch_back_002.png", 
 		"img/mch_left_001.png", 
@@ -307,9 +306,7 @@ var game = {
 		"img/mch_right_001.png", 
 		"img/mch_right_002.png", 
 		"img/mch_right_003.png", 
-		"img/mch_right_003.png", 
-		"img/mch_right_003.png", 
-		"img/mch_right_003.png", 
+		"img/tree.png",
 
 		"img/villager_001.png",
 		"img/villager_002.png",
@@ -335,7 +332,7 @@ var game = {
 		"music/rt.wav", 
 		"music/gulp.wav", 
 		"music/shovel.wav", 
-		"music/stab.wav", 
+		"music/slime.wav", 
 		"music/step.wav", 
 		"music/switch.wav", 
 		"music/swoosh.wav", 
@@ -361,13 +358,12 @@ var game = {
 	clicking: false,
 	enemies: [],
 	action_radius: 10,
-	current_pickup: null,
 	tick: function() {
 		Object.keys(game.keys_down).forEach(key => {
 			let val = game.keys_down[key];
 			if(val === 1) {
 				switch(key) {
-				 	case 'n':
+				 	case 'n':idle
 						music.volume(0.8);
 						break;
 					case 'm':
@@ -441,17 +437,34 @@ var game = {
 						case "left":
 							game.clicking = true;
 							setTimeout(() => { game.clicking = false; }, 100);
-							handle_left_click();
+							handle_left_click(game.mx, game.my);
 							break;
 						case "right":
 							game.clicking = true;
 							setTimeout(() => { game.clicking = false; }, 100);
-							handle_right_click();
+							handle_right_click(game.mx, game.my);
 							break;
 					}
-
-				}				
+				}
 			}
+		});
+
+		if(game.t % 250 === 0) {
+			game.player.inventory.seeds.zombie += 1;
+		}
+
+		// Tick the game ui
+		Object.keys(game.ui).forEach(ui_key => {
+			let sq = game.ui[ui_key];
+			sq.tick();
+		});
+		// TICK BG ELEMENTS
+		//game.cacti.forEach(c => {  c.tick(); });
+		// Tick all the plants
+		Object.keys(game.plants).forEach(p => {
+			game.plants[p].forEach(sq => {
+				sq.tick();	
+			});
 		});
 
 		game.enemies.forEach( wd => { wd.tick(); });
@@ -462,71 +475,6 @@ var game = {
 			let sq = game.pickups[a];
 				sq.tick();	
 		});
-	},
-	draw: function() {
-		sq_clearRect(0,0,game.SW,game.SH);
-
-		//game.cacti.forEach(c => {  c.draw(); });
-		// Draw all the plants
-		Object.keys(game.plants).forEach(p => {
-			game.plants[p].forEach(sq => {
-				sq.draw();	
-			});
-		});
-		game.enemies.forEach( wd => { wd.draw(); });
-		game.water_drops.forEach( wd => { if(wd.plant.alive) {wd.draw();} });
-		game.harvest_icons.forEach( wd => { if(wd.plant.alive) {wd.draw();} });
-		Object.keys(game.pickups).forEach(a => {
-			let sq = game.pickups[a];
-				sq.draw();	
-		});
-
-		sq_drawDoughnut(game.player.x, game.player.y, game.player.radius, game.SW + game.SH, "rgba(0,0,0,0.84)");
-
-		let ty = 20;
-		sq_drawText("TICK: " + game.t, 20, ty, game.fonts.system, 0.5, "left");
-		ty += 26;
-		// Draw the keys being pressed
-		Object.keys(game.keys_down).forEach(key => {
-			let val = game.keys_down[key];
-			if(val === 1) {
-				sq_drawText(key, 20, ty, game.fonts.system, 0.5, "left");
-				ty += 26;
-			}
-		});
-		// Draw the game ui
-		Object.keys(game.ui).forEach(ui_key => {
-			let sq = game.ui[ui_key];
-			if(sq.active) {
-				sq_fillRect(sq.x - sq.img.w/2 * sq.sx - 2, sq.y - sq.img.h/2 * sq.sy - 2, sq.img.w + 4, sq.img.h + 4, sq.clr || "#FF0");
-				if(sq.toggle) {
-					sq_drawCircle(game.mx, game.my, 60, "#ff0");
-				} else {
-					sq_fillRect(game.mx - 32, game.my - 32, 64, 64, "rgba(50,55,75,.3)");
-				}
-			}
-			sq.draw();
-		});
-
-		sq_fillRect(game.ui.zombie_seeds.x - game.ui.zombie_seeds.img.w/2, game.SH - 20 - game.ui.zombie_seeds.img.h, game.ui.zombie_seeds.img.w, game.ui.zombie_seeds.img.h, "rgba(0, 0, 0, .5)");
-		sq_fillRect(game.ui.bone_seeds.x - game.ui.zombie_seeds.img.w/2, game.SH - 20 - game.ui.zombie_seeds.img.h, game.ui.zombie_seeds.img.w, game.ui.zombie_seeds.img.h, "rgba(0, 0, 0, .5)");
-
-		sq_drawText(game.player.inventory.seeds.zombie, game.ui.zombie_seeds.img.w/2 + 20, game.SH - 20 - game.ui.zombie_seeds.img.h/2, game.fonts.seed, 1, "center");
-		sq_drawText(game.player.inventory.seeds.bones, game.ui.bone_seeds.x, game.SH - 20 - game.ui.zombie_seeds.img.h/2, game.fonts.seed, 1, "center");
-	
-
-		sq_drawCircle(game.mx, game.my, game.action_radius, "#ff0");
-		game.player.draw();
-	},
-	loop: function() {
-		game.t++;
-		game.SW = window.innerWidth;
-		game.SH = window.innerHeight;
-
-		game.tick();
-		game.draw();
-		
-		window.requestAnimationFrame(game.loop);
 	},
 	draw: function() {
 		sq_clearRect(0,0,game.SW,game.SH);
@@ -610,11 +558,8 @@ var game = {
 			game.player.animations.player_right = [sq_getImage("img/mch_right_001.png"), sq_getImage("img/mch_right_002.png"), sq_getImage("img/mch_right_003.png")];
 			game.player.animations.player_forward = [sq_getImage("img/mch_idle_001.png"), sq_getImage("img/mch_idle_002.png")];
 			game.player.animations.player_backward = [sq_getImage("img/mch_back_001.png"), sq_getImage("img/mch_back_002.png")];
-			game.player.animations.player_idle = [sq_getImage("img/mch_idle_001.png")];
-			game.player.animations.player_idle_sickle = [sq_getImage("img/mch_idle_001.png")];
-			game.player.animations.player_idle_sword = [sq_getImage("img/mch_idle_sword.png")];
-			game.player.animations.player_idle_watering_can = [sq_getImage("img/mch_idle_watering_can.png")];
-			game.player.animations.player_atk = [sq_getImage("img/mch_sword_001.png"), sq_getImage("img/mch_sword_002.png")];
+			game.player.animations.player_idle = [sq_getImage("img/mch_idle_001.png"), sq_getImage("img/mch_idle_002.png")];
+			game.player.animations.player_atk = [sq_getImage("img/mch_atk_001.png"), sq_getImage("img/mch_atk_002.png")];
 			game.player.alive = true;
 
 			game.player.speed = 3;
@@ -653,13 +598,7 @@ var game = {
 				if(!sq.attacking && ! sq.moving) {
 					// IDLE
 					sq.step = 0;
-					if(sq.carrying) {
-						let idle = sq.animations["player_idle_" + game.current_pickup];
-						console.log(idle, game.current_pickup);
-						sq.anim = idle;
-					} else {
-						sq.anim = sq.animations.player_idle;
-					}
+					sq.anim = sq.animations.player_idle;
 				} else {
 					if(sq.attacking) {
 						sq.anim = sq.animations.player_atk;
@@ -688,9 +627,9 @@ var game = {
 				sq_getImage("img/villager_003.png"),
 				sq_getImage("img/villager_004.png"),
 			];
-			for(let i = 0; i < 5; i++) {
+			for(let i = 0; i < 10; i++) {
 				let flipper = Math.floor(Math.random() * 2);
-				let sq = sq_create(villager_images[flipper], (Math.random() * i * game.SW) + flipper * game.SW * 2, (Math.random() * i * game.SH) + flipper * game.SH * 2);
+				let sq = sq_create(villager_images[flipper], (Math.random() * i * game.SW) + flipper * game.SW, (Math.random() * i * game.SH) + flipper * game.SH);
 				sq.alive = true;
 				sq.anim = villager_images;
 				sq.step = flipper;
@@ -733,22 +672,17 @@ var game = {
 			}
 
 			let sword_image = sq_getImage("img/sword.png");
-			game.pickups.sword = sq_create(sword_image, Math.random() * game.SW/2 % game.SW, Math.random() * game.SH/2 % game.SH);
+			game.pickups.sword = sq_create(sword_image, Math.random() * game.SW % game.SW, Math.random() * game.SH % game.SH);
 			game.pickups.sword.alive = true;
 			game.pickups.sword.action = function() {
 				game.player.anim = game.player.animations.player_atk;
 				game.player.attacking = true;
-				let cut = sq_getSound("music/swoosh.wav");
-				cut.play();
 				game.enemies.forEach(sq => {
-					let can_harvest = player_close_enough(game.player.x,game.player.y, sq);
+					let can_harvest = player_close_enough(game.mx,game.my);
 					if(!can_harvest) return;
 					if(hitArc({alive: true, radius: 30, x: game.mx, y: game.my}, sq)) {
-						let sl = sq_getSound("music/stab.wav");
-						sl.play();
-						// GET A BRAIN
-						plant("zombie", sq.x, sq.y);
-						game.player.inventory.seeds.zombie += 1;
+						let cut = sq_getSound("music/cut.wav");
+						cut.play();
 						let flipper = Math.random() < 0.5 ? -1 : 1;
 						sq.x = (Math.random() * game.SW) + (flipper * game.SW);
 						sq.y = (Math.random() * game.SH) + (flipper * game.SH);
@@ -760,7 +694,6 @@ var game = {
 				if(!game.player.carrying) {
 					if(!sq.carried) {
 						if(hitRect(sq, game.player.x, game.player.y)) {
-							game.current_pickup = "sword";
 							sq.x = game.player.x;
 							sq.y = game.player.y - game.player.img.h;
 							sq.carried = true;
@@ -780,13 +713,13 @@ var game = {
 			}
 
 			let sickle_image = sq_getImage("img/sickle.png");
-			game.pickups.sickle = sq_create(sickle_image, Math.random() * game.SW/2 % game.SW, Math.random() * game.SH/2 % game.SH);
+			game.pickups.sickle = sq_create(sickle_image, Math.random() * game.SW % game.SW, Math.random() * game.SH % game.SH);
 			game.pickups.sickle.alive = true;
 			game.pickups.sickle.action = function() {
 				Object.keys(game.plants).forEach(p => {
 					game.plants[p].forEach(sq => {
 						if(!sq.ripe) return;
-						let can_harvest = player_close_enough(game.mx,game.my, sq);
+						let can_harvest = player_close_enough(game.mx,game.my);
 						if(!can_harvest) return;
 						if(hitArc({alive: true, radius: 45, x: game.mx, y: game.my}, sq)) {
 							let cut = sq_getSound("music/cut.wav");
@@ -802,7 +735,6 @@ var game = {
 				if(!game.player.carrying) {
 					if(!sq.carried) {
 						if(hitRect(sq, game.player.x, game.player.y)) {
-							game.current_pickup = "sickle";
 							sq.x = game.player.x;
 							sq.y = game.player.y - game.player.img.h;
 							sq.carried = true;
@@ -822,13 +754,13 @@ var game = {
 			}
 
 			let watering_can_image = sq_getImage("img/watering_can.png");
-			game.pickups.watering_can = sq_create(watering_can_image, Math.random() * game.SW / 2 % game.SW, Math.random() * game.SH / 2 % game.SH);
+			game.pickups.watering_can = sq_create(watering_can_image, Math.random() * game.SW % game.SW, Math.random() * game.SH % game.SH);
 			game.pickups.watering_can.alive = true;
 			game.pickups.watering_can.action = function() {
 				Object.keys(game.plants).forEach(p => {
 					game.plants[p].forEach(sq => {
 						if(!sq.water) return;
-						let can_water = player_close_enough(game.mx,game.my, sq);
+						let can_water = player_close_enough(game.mx,game.my);
 						if(!can_water) return;
 						if(sq.has_been_watered) return;
 						if(hitArc({alive: true, radius: 60, x: game.mx, y: game.my}, sq)) {
@@ -844,7 +776,6 @@ var game = {
 				if(!game.player.carrying) {
 					if(!sq.carried) {
 						if(hitRect(sq, game.player.x, game.player.y)) {
-							game.current_pickup = "watering_can";
 							sq.x = game.player.x;
 							sq.y = game.player.y - game.player.img.h;
 							sq.carried = true;
