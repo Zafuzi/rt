@@ -4,9 +4,36 @@
 		<title>RT</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link rel="stylesheet" href="local.css">
+		<style>
+			#restart_container{
+				display: none;
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate3d(-50%, -50%, 0);
+				width: 400px;
+				height: 400px;
+				align-items: center;
+				justify-content: center;
+				background: rgba(0,0,0,.85);
+				color: #fff;
+				z-index: 99;
+				flex-flow: column;
+			}
+			button {
+				background: red;
+				border: none;
+				padding: 16px 25px;
+				color: #fff;
+			}
+		</style>
 	</head>
 
 	<body>
+		<div id="restart_container">
+			<h2> GAME OVER! </h2>
+			<button id="restart_game"> RESTART </button>
+		</div>
 		<canvas id=mycanvas></canvas>
 
 		<script src="lib/jquery.min.js"></script>

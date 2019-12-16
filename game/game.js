@@ -1,3 +1,7 @@
+var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+                            window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+
+var cancelAnimationFrame = window.cancelAnimationFrame || window.mozCancelAnimationFrame;
 // -------------------------------------------------------
 // Some math stuff
 // -------------------------------------------------------
@@ -358,6 +362,7 @@ var game = {
 	clicking: false,
 	enemies: [],
 	action_radius: 10,
+	score: 0,
 	tick: function() {
 		Object.keys(game.keys_down).forEach(key => {
 			let val = game.keys_down[key];
@@ -497,9 +502,10 @@ var game = {
 		sq_drawDoughnut(game.player.x, game.player.y, game.player.radius, game.SW + game.SH, "rgba(0,0,0,0.84)");
 
 		let ty = 20;
-		sq_drawText("TICK: " + game.t, 20, ty, game.fonts.system, 0.5, "left");
+		//sq_drawText("TICK: " + game.t, 20, ty, game.fonts.system, 0.5, "left");
 		ty += 26;
 		// Draw the keys being pressed
+		/*
 		Object.keys(game.keys_down).forEach(key => {
 			let val = game.keys_down[key];
 			if(val === 1) {
@@ -507,6 +513,7 @@ var game = {
 				ty += 26;
 			}
 		});
+		*/
 		// Draw the game ui
 		Object.keys(game.ui).forEach(ui_key => {
 			let sq = game.ui[ui_key];
@@ -529,6 +536,7 @@ var game = {
 	
 
 		sq_drawText(game.player.health, game.player.x, game.player.y - 64, game.fonts.seed, 1, "center");
+		sq_drawText("SCORE: " + game.score, game.SW - 20, 20, game.fonts.seed, 1, "right");
 		sq_drawCircle(game.mx, game.my, game.action_radius, "#ff0");
 		game.player.draw();
 	},
@@ -537,10 +545,21 @@ var game = {
 		game.SW = window.innerWidth;
 		game.SH = window.innerHeight;
 
-		game.tick();
-		game.draw();
+		if(game.player.health <= 0) {
+			game.player.health = 0;
+			cancelAnimationFrame(game.loopID);
+			let container = getEl("restart_container");
+			container.style.display = "flex";
+			let btn = getEl("restart_game");
+			btn.addEventListener("click", () => {
+				location.reload();
+			});
+		} else {
+			game.tick();
+			game.draw();
+		}
 		
-		window.requestAnimationFrame(game.loop);
+		game.loopID = requestAnimationFrame(game.loop);
 	},
 	init: function() {
 		sq_loadAssets(game.images, game.sounds, () => {
@@ -630,17 +649,17 @@ var game = {
 				sq_getImage("img/villager_003.png"),
 				sq_getImage("img/villager_004.png"),
 			];
-			for(let i = 0; i < 10; i++) {
+			for(let i = 0; i < 25; i++) {
 				let flipper = Math.floor(Math.random() * 2);
-				let sq = sq_create(villager_images[flipper], (Math.random() * i * game.SW) + flipper * game.SW, (Math.random() * i * game.SH) + flipper * game.SH);
+				let sq = sq_create(villager_images[flipper], (Math.random() * i * game.SW) + flipper * game.SW + 1000, (Math.random() * i * game.SH) + flipper * game.SH +1000);
 				sq.alive = true;
 				sq.anim = villager_images;
 				sq.step = flipper;
 				sq.tick = function() {
 					let sq = this;
 					newton(sq);
-					sq.vx = (game.player.x - sq.x) * 0.0025;
-					sq.vy = (game.player.y - sq.y) * 0.0025;
+					sq.vx = ((game.player.x - sq.x) * 0.5) * 0.005;
+					sq.vy = ((game.player.y - sq.y) * 0.5) * 0.005;
 					if(game.t % 15 === 0) {
 						sq.img = sq.anim[sq.step] 
 						sq.step++;
@@ -692,9 +711,10 @@ var game = {
 					if(hitArc({alive: true, radius: 30, x: game.mx, y: game.my}, sq)) {
 						let cut = sq_getSound("music/cut.wav");
 						cut.play();
+						plant("zombie", sq.x, sq.y);
 						let flipper = Math.random() < 0.5 ? -1 : 1;
-						sq.x = (Math.random() * game.SW) + (flipper * game.SW);
-						sq.y = (Math.random() * game.SH) + (flipper * game.SH);
+						sq.x = (Math.random() * game.SW) + (flipper * game.SW * 20);
+						sq.y = (Math.random() * game.SH) + (flipper * game.SH * 20);
 					}
 				});
 			}
@@ -731,6 +751,7 @@ var game = {
 						let can_harvest = player_close_enough(game.mx,game.my);
 						if(!can_harvest) return;
 						if(hitArc({alive: true, radius: 45, x: game.mx, y: game.my}, sq)) {
+							game.score += 100;
 							let cut = sq_getSound("music/cut.wav");
 							cut.play();
 							sq.alive = false;
@@ -855,7 +876,7 @@ var game = {
 				game.cacti.push(sq);
 			}
 
-			window.requestAnimationFrame(game.loop);
+			game.loopID = requestAnimationFrame(game.loop);
 		});
 	}
 }

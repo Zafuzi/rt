@@ -302,7 +302,7 @@
 			}
 		};
 
-		canvas.onkeyup = window.onkeyup = function (evt) {
+		canvas.onkeyup = window.onkeyup = document.onkeydown = function (evt) {
 			let key = evt.key;
 			let f = window["app_keyup"];
 			if( typeof f === "function" ) {
@@ -310,7 +310,7 @@
 			}
 		}
 
-		canvas.onkeydown = window.onkeydown = function (evt) {
+		canvas.onkeydown = window.onkeydown = document.onkeydown = function (evt) {
 			let key = evt.key;
 			let f = window["app_keydown"];
 			if( typeof f === "function" ) {
