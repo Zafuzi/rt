@@ -81,20 +81,20 @@ app_keyup = function(key) {
 	game.keys_down[key] = 0;
 }
 app_keydown = function(key) {
-	game.keys_down[key] = 1;
+game.keys_down[key] = 1;
 }
 
 app_mousemove = function(x, y) {
-	game.mx = x;
-	game.my = y;
+game.mx = x;
+game.my = y;
 }
 
 function toggle_action_buttons() {
-	Object.keys(game.ui).forEach(ui_key => {
-		let sq = game.ui[ui_key];
-		if(sq.toggle)
-			sq.active = false;
-	});
+Object.keys(game.ui).forEach(ui_key => {
+	let sq = game.ui[ui_key];
+	if(sq.toggle)
+		sq.active = false;
+});
 }
 
 var handle_left_click = function(x,y) {
@@ -142,6 +142,9 @@ app_mouseup = function(x,y, btn) {
 	switch(btn) {
 		case 0: // Left mouse button
 			game.mouse_btns_down["left"] = 0;
+			setTimeout(() => {
+				game.player.attacking = false;
+			}, 250);
 			break;
 		case 2: // Right mouse button
 			game.mouse_btns_down["right"] = 0;
@@ -285,18 +288,30 @@ var game = {
 		"img/brain.png",
 		"img/cactus.png",
 		"img/sickle.png",
+		"img/sword.png",
 		"img/harvest.png", 
 
 		"img/rock.png",
 
 		"img/mustache.png",
-		"img/mch_idle.png", 
+		"img/mch_idle_001.png", 
+		"img/mch_idle_002.png", 
+		"img/mch_atk_001.png", 
+		"img/mch_atk_002.png", 
+		"img/mch_back_001.png", 
+		"img/mch_back_002.png", 
 		"img/mch_left_001.png", 
 		"img/mch_left_002.png", 
 		"img/mch_left_003.png", 
 		"img/mch_right_001.png", 
 		"img/mch_right_002.png", 
+		"img/mch_right_003.png", 
 		"img/tree.png",
+
+		"img/villager_001.png",
+		"img/villager_002.png",
+		"img/villager_003.png",
+		"img/villager_004.png",
 
 		"img/watering_can.png", 
 		"img/water_drop.png", 
@@ -317,8 +332,10 @@ var game = {
 		"music/rt.wav", 
 		"music/gulp.wav", 
 		"music/shovel.wav", 
+		"music/slime.wav", 
 		"music/step.wav", 
 		"music/switch.wav", 
+		"music/swoosh.wav", 
 		"music/under_the_moonrise.mp3"
 	],
 	fonts: {
@@ -340,6 +357,7 @@ var game = {
 	pickups: {},
 	clicking: false,
 	enemies: [],
+	action_radius: 10,
 	tick: function() {
 		Object.keys(game.keys_down).forEach(key => {
 			let val = game.keys_down[key];
@@ -353,25 +371,26 @@ var game = {
 						break;
 				 	case 'w':
 						game.player.vy = -game.player.speed;
-						game.player.moving = true;
 						game.player.anim = game.player.animations.player_backward;
+						game.player.moving = true;
 						break;
 					case 's':
 						game.player.vy = game.player.speed; 
-						game.player.moving = true;
 						game.player.anim = game.player.animations.player_forward;
+						game.player.moving = true;
 						break;
 				 	case 'a':
 						game.player.vx = -game.player.speed;
-						game.player.moving = true;
 						game.player.anim = game.player.animations.player_left;
+						game.player.moving = true;
 						break;
 					case 'd':
 						game.player.vx = game.player.speed;
-						game.player.moving = true;
 						game.player.anim = game.player.animations.player_right;
+						game.player.moving = true;
 						break;
 					case 'e':
+						game.action_radius = 10;
 						if(game.player.carrying) {
 							game.player.carrying.carried = false;
 							game.player.carrying.x += 32;
@@ -383,6 +402,30 @@ var game = {
 						break;
 					default: break;
 				}
+			} else {
+				// THINGS TO DO ON KEY UP ^
+				switch(key) {
+				 	case 'w':
+						setTimeout(() => {
+							game.player.moving = false;
+						}, 250);
+						break;
+					case 's':
+						setTimeout(() => {
+							game.player.moving = false;
+						}, 250);
+						break;
+				 	case 'a':
+						setTimeout(() => {
+							game.player.moving = false;
+						}, 250);
+						break;
+					case 'd':
+						setTimeout(() => {
+							game.player.moving = false;
+						}, 250);
+						break;
+				}
 			}
 		});
 
@@ -393,12 +436,12 @@ var game = {
 					switch(btn) {
 						case "left":
 							game.clicking = true;
-							setTimeout(() => { game.clicking = false; }, 250);
+							setTimeout(() => { game.clicking = false; }, 100);
 							handle_left_click(game.mx, game.my);
 							break;
 						case "right":
 							game.clicking = true;
-							setTimeout(() => { game.clicking = false; }, 250);
+							setTimeout(() => { game.clicking = false; }, 100);
 							handle_right_click(game.mx, game.my);
 							break;
 					}
@@ -485,6 +528,7 @@ var game = {
 		sq_drawText(game.player.inventory.seeds.bones, game.ui.bone_seeds.x, game.SH - 20 - game.ui.zombie_seeds.img.h/2, game.fonts.seed, 1, "center");
 	
 
+		sq_drawCircle(game.mx, game.my, game.action_radius, "#ff0");
 		game.player.draw();
 	},
 	loop: function() {
@@ -508,13 +552,14 @@ var game = {
 
 
 
-			game.player = sq_create(sq_getImage("img/mch_idle.png"), game.SW * 0.5, game.SH * 0.5);
+			game.player = sq_create(sq_getImage("img/mch_idle_001.png"), game.SW * 0.5, game.SH * 0.5);
 			game.player.animations = {};
 			game.player.animations.player_left = [sq_getImage("img/mch_left_001.png"), sq_getImage("img/mch_left_002.png"), sq_getImage("img/mch_left_003.png")];
 			game.player.animations.player_right = [sq_getImage("img/mch_right_001.png"), sq_getImage("img/mch_right_002.png"), sq_getImage("img/mch_right_003.png")];
-			game.player.animations.player_forward = [sq_getImage("img/mch_idle.png"), sq_getImage("img/mch_idle.png")];
-			game.player.animations.player_backward = [sq_getImage("img/mch_idle.png"), sq_getImage("img/mch_idle.png")];
-			game.player.animations.player_idle = [sq_getImage("img/mch_idle.png"), sq_getImage("img/mch_idle.png")];
+			game.player.animations.player_forward = [sq_getImage("img/mch_idle_001.png"), sq_getImage("img/mch_idle_002.png")];
+			game.player.animations.player_backward = [sq_getImage("img/mch_back_001.png"), sq_getImage("img/mch_back_002.png")];
+			game.player.animations.player_idle = [sq_getImage("img/mch_idle_001.png"), sq_getImage("img/mch_idle_002.png")];
+			game.player.animations.player_atk = [sq_getImage("img/mch_atk_001.png"), sq_getImage("img/mch_atk_002.png")];
 			game.player.alive = true;
 
 			game.player.speed = 3;
@@ -532,6 +577,7 @@ var game = {
 
 			game.player.step_sound = sq_getSound("music/step.wav");
 			game.player.step = 0;
+			game.player.attacking = false;
 			game.player.anim = game.player.animations.player_idle;
 			game.player.tick = function() {
 				let sq = this;
@@ -548,21 +594,24 @@ var game = {
 				if(sq.vx == 0 && sq.vy == 0) {
 					sq.moving = false;
 				}
-				if(!sq.moving) {
+
+				if(!sq.attacking && ! sq.moving) {
+					// IDLE
 					sq.step = 0;
 					sq.anim = sq.animations.player_idle;
-					sq.img = sq.anim[sq.step];
+				} else {
+					if(sq.attacking) {
+						sq.anim = sq.animations.player_atk;
+					}
 				}
 				if(game.t % 5 === 0) {
-					if(sq.moving) {
-						if(!sq.anim[sq.step]) {
-							sq.img = sq.img;
-						} else {
-							sq.img = sq.anim[sq.step];
-						}
+					if(!sq.anim[sq.step]) {
+						sq.img = sq.img;
+					} else {
+						sq.img = sq.anim[sq.step];
 					}
-					if(sq.step >= sq.anim.length - 1) sq.step = 0;
 					sq.step++;
+					if(sq.step > sq.anim.length - 1) sq.step = 0;
 				}
 				if(game.t % 18 === 0) {
 					if(sq.moving) {
@@ -572,15 +621,30 @@ var game = {
 				sq_tick(this);
 			}
 
-			let mustache_img = sq_getImage("img/mustache.png");
-			for(let i = 0; i < 100; i++) {
-				let sq = sq_create(mustache_img, (Math.random() * i * game.SW) % game.SW, (Math.random() * i * game.SH) % game.SH);
+			let villager_images = [
+				sq_getImage("img/villager_001.png"),
+				sq_getImage("img/villager_002.png"),
+				sq_getImage("img/villager_003.png"),
+				sq_getImage("img/villager_004.png"),
+			];
+			for(let i = 0; i < 10; i++) {
+				let flipper = Math.floor(Math.random() * 2);
+				let sq = sq_create(villager_images[flipper], (Math.random() * i * game.SW) + flipper * game.SW, (Math.random() * i * game.SH) + flipper * game.SH);
 				sq.alive = true;
+				sq.anim = villager_images;
+				sq.step = flipper;
 				sq.tick = function() {
 					let sq = this;
 					newton(sq);
-					sq.vx = (game.player.x - sq.x) * 0.001;
-					sq.vy = (game.player.y - sq.y) * 0.001;
+					sq.vx = (game.player.x - sq.x) * 0.0025;
+					sq.vy = (game.player.y - sq.y) * 0.0025;
+					if(game.t % 15 === 0) {
+						sq.img = sq.anim[sq.step] 
+						sq.step++;
+						if(sq.step > sq.anim.length -1) {
+							sq.step = 0;
+						}
+					}
 					sq_tick(sq);
 				}
 				game.enemies.push(sq);
@@ -607,8 +671,49 @@ var game = {
 				sq_tick(this);
 			}
 
+			let sword_image = sq_getImage("img/sword.png");
+			game.pickups.sword = sq_create(sword_image, Math.random() * game.SW % game.SW, Math.random() * game.SH % game.SH);
+			game.pickups.sword.alive = true;
+			game.pickups.sword.action = function() {
+				game.player.anim = game.player.animations.player_atk;
+				game.player.attacking = true;
+				game.enemies.forEach(sq => {
+					let can_harvest = player_close_enough(game.mx,game.my);
+					if(!can_harvest) return;
+					if(hitArc({alive: true, radius: 30, x: game.mx, y: game.my}, sq)) {
+						let cut = sq_getSound("music/cut.wav");
+						cut.play();
+						let flipper = Math.random() < 0.5 ? -1 : 1;
+						sq.x = (Math.random() * game.SW) + (flipper * game.SW);
+						sq.y = (Math.random() * game.SH) + (flipper * game.SH);
+					}
+				});
+			}
+			game.pickups.sword.tick = function() {
+				let sq = this;
+				if(!game.player.carrying) {
+					if(!sq.carried) {
+						if(hitRect(sq, game.player.x, game.player.y)) {
+							sq.x = game.player.x;
+							sq.y = game.player.y - game.player.img.h;
+							sq.carried = true;
+							game.player.carrying = sq;
+						}
+					} else {
+						sq.x = game.player.x;
+						sq.y = game.player.y - game.player.img.h;
+					}
+				} else {
+					if(game.player.carrying === sq) {
+						game.action_radius = 30;
+						sq.x = game.player.x;
+						sq.y = game.player.y - game.player.img.h;
+					}
+				}
+			}
+
 			let sickle_image = sq_getImage("img/sickle.png");
-			game.pickups.sickle = sq_create(sickle_image, game.SW * 0.5 + 64, game.SH * 0.5 + 64);
+			game.pickups.sickle = sq_create(sickle_image, Math.random() * game.SW % game.SW, Math.random() * game.SH % game.SH);
 			game.pickups.sickle.alive = true;
 			game.pickups.sickle.action = function() {
 				Object.keys(game.plants).forEach(p => {
@@ -616,7 +721,7 @@ var game = {
 						if(!sq.ripe) return;
 						let can_harvest = player_close_enough(game.mx,game.my);
 						if(!can_harvest) return;
-						if(hitArc({alive: true, radius: 60, x: game.mx, y: game.my}, sq)) {
+						if(hitArc({alive: true, radius: 45, x: game.mx, y: game.my}, sq)) {
 							let cut = sq_getSound("music/cut.wav");
 							cut.play();
 							sq.alive = false;
@@ -641,6 +746,7 @@ var game = {
 					}
 				} else {
 					if(game.player.carrying === sq) {
+						game.action_radius = 45;
 						sq.x = game.player.x;
 						sq.y = game.player.y - game.player.img.h;
 					}
@@ -648,7 +754,7 @@ var game = {
 			}
 
 			let watering_can_image = sq_getImage("img/watering_can.png");
-			game.pickups.watering_can = sq_create(watering_can_image, game.SW * 0.5 - 64, game.SH * 0.5 - 64);
+			game.pickups.watering_can = sq_create(watering_can_image, Math.random() * game.SW % game.SW, Math.random() * game.SH % game.SH);
 			game.pickups.watering_can.alive = true;
 			game.pickups.watering_can.action = function() {
 				Object.keys(game.plants).forEach(p => {
@@ -681,6 +787,7 @@ var game = {
 					}
 				} else {
 					if(game.player.carrying === sq) {
+						game.action_radius = 60;
 						sq.x = game.player.x;
 						sq.y = game.player.y - game.player.img.h;
 					}
@@ -707,7 +814,7 @@ var game = {
 
 
 			for(let i = 0; i <= 10; i++) {
-				let flipper = Math.floor(Math.random() * 2);
+				let flipper = Math.random() < 0.5 ? -1 : 1;
 				let sq = sq_create(tree_image, (Math.random()) * game.SW, (Math.random()) * game.SH);
 				sq.alive = true;
 				let scale = 2;
