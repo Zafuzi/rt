@@ -1,0 +1,23 @@
+{
+  "name": "rt",
+  "version": "1.0.0",
+  "description": "Rotten Thumb Repo for Ryan's Lil Jam",
+  "main": "index.js",
+  "dependencies": {
+    "squids": "^4.6.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zafuzi/rt.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zafuzi/rt/issues"
+  },
+  "homepage": "https://github.com/zafuzi/rt#readme"
+}
